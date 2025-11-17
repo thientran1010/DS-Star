@@ -6,3 +6,9 @@ runs/
 data/
 logs/
 .DS_Store
+
+# uv
+.uv/
+*.egg-info/
+dist/
+build/

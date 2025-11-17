@@ -1,0 +1,50 @@
+[project]
+name = "ds-star"
+version = "0.1.0"
+description = "DS-STAR: A Data Science Agentic Framework"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Nicolas Perez", email = "nicolasperez@example.com" }
+]
+keywords = ["data-science", "ai", "agents", "gemini", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "google-generativeai>=0.8.0",
+    "pydantic>=2.12.0",
+    "PyYAML>=6.0",
+    "tqdm>=4.67.0",
+    "requests>=2.32.0",
+]
+
+[project.scripts]
+dsstar = "dsstar:main"
+
+[project.urls]
+Homepage = "https://github.com/nicolasperez/DS-Star"
+Repository = "https://github.com/nicolasperez/DS-Star"
+Documentation = "https://github.com/nicolasperez/DS-Star#readme"
+"Bug Tracker" = "https://github.com/nicolasperez/DS-Star/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["dsstar.py"]
+

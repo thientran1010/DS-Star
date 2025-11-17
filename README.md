@@ -36,7 +36,9 @@ All artifacts for each run are stored in the `runs/` directory, organized by `ru
 ├─── dsstar.py               # Main script containing the agent logic and CLI
 ├─── config.yaml             # Main configuration file
 ├─── prompt.yaml             # Prompts for the different AI agents
-├─── requirements.txt        # Python dependencies
+├─── pyproject.toml          # Project metadata and dependencies (uv format)
+├─── uv.lock                 # Locked dependency versions for reproducibility
+├─── .python-version         # Python version specification for uv
 ├─── data/                   # Directory for your data files
 └─── runs/                   # Directory where all experiment runs and artifacts are stored
 ```
@@ -45,22 +47,28 @@ All artifacts for each run are stored in the `runs/` directory, organized by `ru
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.11+
 - An API key for Google's Gemini models.
+- [uv](https://docs.astral.sh/uv/) package manager (recommended)
 
 ### Installation
+
+#### Using uv (Recommended)
 
 1.  **Clone the repository:**
     ```bash
     git clone <repository-url>
-    cd DS_Star_impl
+    cd DS-Star
     ```
 
-2.  **Set up a virtual environment and install dependencies:**
+2.  **Install uv (if not already installed):**
     ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+
+3.  **Install dependencies with uv:**
+    ```bash
+    uv sync
     ```
 
 ### Configuration
@@ -91,8 +99,9 @@ Place your data files (e.g., `.xlsx`, `.csv`) in the `data/` directory.
 
 To start a new analysis, you need to provide the data files and a query.
 
+Using uv:
 ```bash
-python dsstar.py --data-files file1.xlsx file2.xlsx --query "What is the total sales for each department?"
+uv run python dsstar.py --data-files file1.xlsx file2.xlsx --query "What is the total sales for each department?"
 ```
 
 ### Resuming a Run
@@ -100,7 +109,7 @@ python dsstar.py --data-files file1.xlsx file2.xlsx --query "What is the total s
 If a run was interrupted, you can resume it using its `run_id`.
 
 ```bash
-python dsstar.py --resume <run_id>
+uv run python dsstar.py --resume <run_id>
 ```
 
 ### Editing Code During a Run
@@ -108,7 +117,7 @@ python dsstar.py --resume <run_id>
 You can manually edit the last generated piece of code and re-run it. This is useful for manual debugging or tweaking the agent's logic.
 
 ```bash
-python dsstar.py --edit-last --resume <run_id>
+uv run python dsstar.py --edit-last --resume <run_id>
 ```
 This will open the last code file in your default text editor (`nano`, `vim`, etc.). After you save and close the editor, the script will re-execute the modified code.
 
@@ -117,8 +126,28 @@ This will open the last code file in your default text editor (`nano`, `vim`, et
 To review each step before proceeding, use the interactive flag.
 
 ```bash
-python dsstar.py --interactive --data-files ... --query "..."
+uv run python dsstar.py --interactive --data-files ... --query "..."
 ```
+
+## UV Package Manager
+
+This project uses `uv` for fast and reliable dependency management. Here are some useful commands:
+
+### Common UV Commands
+
+- **Install dependencies**: `uv sync`
+- **Add a new dependency**: `uv add package-name`
+- **Remove a dependency**: `uv remove package-name`
+- **Update dependencies**: `uv sync --upgrade`
+- **Run a command in the virtual environment**: `uv run python script.py`
+- **Show installed packages**: `uv pip list`
+
+### Benefits of UV
+
+- **Speed**: uv is 10-100x faster than pip
+- **Reliability**: Consistent dependency resolution with lock files
+- **No virtual environment activation needed**: Use `uv run` to execute commands directly
+- **Better dependency resolution**: Automatically resolves complex dependency conflicts
 
 ## Configuration
 
