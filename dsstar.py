@@ -10,7 +10,7 @@ import atexit
 import yaml
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
-from provider import ModelProvider, GeminiProvider
+from provider import ModelProvider, GeminiProvider, OpenAIProvider
 
 # =============================================================================
 # CONFIGURATION & PROMPT TEMPLATES
@@ -244,21 +244,47 @@ class DS_STAR_Agent:
         # List of known agents
         agents = ["ANALYZER", "PLANNER", "CODER", "VERIFIER", "ROUTER", "DEBUGGER", "FINALYZER"]
         
-        # We need to know which provider class corresponds to which model or config
-        # For now, we assume GeminiProvider is the default.
-        # In a more advanced setup, we might map model names to providers or have a factory.
-        
-        # Check for API key using the provider's requirement
-        # Since we are defaulting to Gemini for now:
-        gemini_env_var = GeminiProvider(api_key="", model_name="").env_var_name
-        if not config.api_key and not os.environ.get(gemini_env_var):
-             raise ValueError(f"{gemini_env_var} must be set in environment or config.")
-        
-        api_key = config.api_key or os.environ.get(gemini_env_var)
+        def get_provider_for_model(model_name: str, config: DSConfig) -> ModelProvider:
+            if model_name.startswith("gpt") or model_name.startswith("o1"):
+                provider_cls = OpenAIProvider
+            else:
+                provider_cls = GeminiProvider
+            
+            # Get API key
+            # We check config first, then env var defined by the provider
+            # Note: We instantiate a dummy to get the env var name, or make it static.
+            # Since it's a property on instance in our design, we might need to change design or instantiate dummy.
+            # For now, let's just check the env var directly based on class.
+            
+            # Better approach: Pass the key if available in config, else let provider handle it or check env here.
+            # But config.api_key is currently a single field.
+            # If we have multiple providers, we might need multiple keys.
+            # For backward compatibility, config.api_key is likely the Gemini key or the "primary" key.
+            
+            # Let's assume config.api_key is for the default provider if it matches, otherwise check env.
+            
+            dummy = provider_cls(api_key="dummy", model_name="dummy")
+            env_var = dummy.env_var_name
+            
+            api_key = os.environ.get(env_var)
+            if config.api_key and provider_cls == GeminiProvider: # Assume config.api_key is for Gemini if not specified otherwise
+                 api_key = config.api_key
+            
+            # If we still don't have a key, and it's OpenAI, maybe config.api_key was meant for it?
+            # This is ambiguous. Let's rely on Env Vars for non-default providers if config.api_key is taken.
+            
+            if not api_key:
+                 # Fallback: if config.api_key is set, try using it (user might have set it for OpenAI)
+                 if config.api_key:
+                     api_key = config.api_key
+                 else:
+                     raise ValueError(f"{env_var} must be set for model {model_name}")
+            
+            return provider_cls(api_key, model_name)
 
         for agent in agents:
             model_name = config.agent_models.get(agent, default_model)
-            self.providers[agent] = GeminiProvider(api_key, model_name)
+            self.providers[agent] = get_provider_for_model(model_name, config)
             self.controller.logger.info(f"Initialized {agent} with model: {model_name}")
         
         # Setup execution environment
@@ -299,16 +325,23 @@ class DS_STAR_Agent:
         try:
             provider = self.providers.get(agent_name)
             if not provider:
-                # Fallback to default if agent name not found (shouldn't happen with current logic)
-                # or if we want to support dynamic agent names
+                # Fallback to default if agent name not found
                 default_model = self.config.model_name
-                # We need the API key here. We can try to get it from config or env.
-                # Since we are in fallback, we assume Gemini.
-                gemini_env_var = GeminiProvider(api_key="", model_name="").env_var_name
-                api_key = self.config.api_key or os.environ.get(gemini_env_var)
+                # Re-use the logic to get provider
+                # For simplicity, just assume Gemini fallback for now or duplicate logic?
+                # Let's duplicate for safety but ideally refactor.
+                if default_model.startswith("gpt") or default_model.startswith("o1"):
+                    provider_cls = OpenAIProvider
+                else:
+                    provider_cls = GeminiProvider
+                
+                dummy = provider_cls(api_key="dummy", model_name="dummy")
+                env_var = dummy.env_var_name
+                api_key = self.config.api_key or os.environ.get(env_var)
+                
                 if not api_key:
-                     raise ValueError(f"API Key not found for fallback provider.")
-                provider = GeminiProvider(api_key, default_model)
+                     raise ValueError(f"API Key not found for fallback provider ({env_var}).")
+                provider = provider_cls(api_key, default_model)
                 
             response_text = provider.generate_content(prompt)
             self.controller.logger.info(f"[{agent_name}] Response received ({len(response_text)} chars)")

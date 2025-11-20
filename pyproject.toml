@@ -27,6 +27,8 @@ dependencies = [
     "PyYAML>=6.0",
     "tqdm>=4.67.0",
     "requests>=2.32.0",
+    "openai>=2.8.1",
+    "pandas>=2.3.3",
 ]
 
 [project.scripts]
