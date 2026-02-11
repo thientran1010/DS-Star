@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import google.generativeai as genai
 import openai
 import ollama
+import requests  
 
 class ModelProvider(ABC):
     """Abstract base class for model providers."""
@@ -109,3 +110,70 @@ class OllamaProvider(ModelProvider):
             messages=[{"role": "user", "content": prompt}]
         )
         return response.message.content
+
+
+class HuggingFaceProvider(ModelProvider):
+    """
+    Provider for Hugging Face Inference API (serverless).
+    Use model names like: hf/meta-llama/Meta-Llama-3-8B-Instruct
+    """
+    def __init__(self, config_api_key: str, model_name: str = "hf/Qwen/Qwen3-Coder-Next"):
+        
+        # Accept either HF_TOKEN or HUGGINGFACEHUB_API_TOKEN (common on HF setups)
+        self.api_key = (
+            config_api_key
+            or os.getenv("HF_TOKEN")
+            or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+        )
+        if not self.api_key:
+            raise ValueError(
+                f"Missing HF token for {model_name}. Set HF_TOKEN or HUGGINGFACEHUB_API_TOKEN."
+            )
+
+        self.model_id = model_name.split("/", 1)[1]  # strip "hf/"
+        base = os.getenv("HF_INFERENCE_BASE_URL", "https://router.huggingface.co/v1/chat/completions").rstrip("/")
+        print("HF intialized")
+        self.api_url = f"{base}"
+        self.session = requests.Session()
+
+        # Basic defaults (you can tune these)
+        # self.max_new_tokens = int(os.getenv("HF_MAX_NEW_TOKENS", "1024"))
+        # self.temperature = float(os.getenv("HF_TEMPERATURE", "0.2"))
+
+    @classmethod
+    def provider_instance(cls, model_name: str) -> bool:
+        return model_name.startswith("hf/") or model_name.startswith("huggingface/")
+
+    @property
+    def env_var_name(self) -> str:
+        # Primary env var we recommend (even though we also accept HUGGINGFACEHUB_API_TOKEN)
+        return "HF_TOKEN"
+
+    def generate_content(self, prompt: str) -> str:
+        print(f"Sending request to HF Inference API for model {self.model_id}...")
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        payload = {
+            "model": self.model_id,
+            "messages": [{"role": "user", 
+                          "content": prompt}],
+        }
+
+        r = self.session.post(self.api_url, headers=headers, json=payload, timeout=300)
+        r.raise_for_status()
+        data = r.json()
+
+        # Common HF formats:
+        # - [{"generated_text": "..."}]
+        # - {"generated_text": "..."}
+        # - {"error": "...", "estimated_time": ...}
+        if isinstance(data, dict) and "error" in data:
+            raise RuntimeError(f"HF Inference error: {data.get('error')} (details: {data})")
+
+        if isinstance(data, list) and data and isinstance(data[0], dict) and "generated_text" in data[0]:
+            return data[0]["generated_text"]
+
+        if isinstance(data, dict) and "generated_text" in data:
+            return data["generated_text"]
+
+        # Fallback: return raw JSON if HF changed format
+        return data['choices'][0]['message']['content']

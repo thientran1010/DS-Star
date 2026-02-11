@@ -1,14 +1,16 @@
-.vscode/
-.idea/
-__pycache__/
-.venv/
-runs/
-data/
-logs/
-.DS_Store
+# Ignore everything by default
+*
 
-# uv
-.uv/
-*.egg-info/
-dist/
-build/
+# Keep directories visible so negations can work (safe even if not needed)
+!*/
+
+# Allow only these files at repo root
+!.gitignore
+!.python-version
+!README.md
+!config.yaml
+!dsstar.py
+!prompt.yaml
+!provider.py
+!pyproject.toml
+!uv.lock

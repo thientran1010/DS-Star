@@ -10,7 +10,7 @@ import atexit
 import yaml
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
-from provider import ModelProvider, GeminiProvider, OllamaProvider, OpenAIProvider
+from provider import ModelProvider, GeminiProvider, OllamaProvider, OpenAIProvider,HuggingFaceProvider
 
 # =============================================================================
 # CONFIGURATION & PROMPT TEMPLATES
@@ -229,6 +229,14 @@ class PipelineController:
 # =============================================================================
 # CORE AGENT (Refactored)
 # =============================================================================
+import time
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type
+)
+import openai  # Ensure you import the specific error type
 
 class DS_STAR_Agent:
     """DS-STAR agent with persistent artifact storage."""
@@ -246,7 +254,7 @@ class DS_STAR_Agent:
         
         def get_provider_for_model(model_name: str, config: DSConfig) -> ModelProvider:
             provider_cls = None
-            for provider in [OllamaProvider, OpenAIProvider, GeminiProvider]:
+            for provider in [OllamaProvider, OpenAIProvider, GeminiProvider, HuggingFaceProvider]:
                 if provider.provider_instance(model_name):
                     provider_cls = provider
                     break
@@ -294,6 +302,12 @@ class DS_STAR_Agent:
         
         atexit.register(lambda: self.log_file.close())
     
+    @retry(
+    retry=retry_if_exception_type(openai.RateLimitError),
+    wait=wait_exponential(multiplier=1, min=4, max=60), 
+    stop=stop_after_attempt(5),
+    before_sleep=lambda retry_state: print(f"Rate limited. Retrying in {retry_state.next_action.sleep} seconds...")
+    )
     def _call_model(self, agent_name: str, prompt: str) -> str:
         """Call the appropriate model provider for the agent."""
         try:
@@ -302,6 +316,8 @@ class DS_STAR_Agent:
             self.controller.logger.info(f"[{agent_name}] Response received ({len(response_text)} chars)")
             return response_text
         except Exception as e:
+            if isinstance(e, openai.RateLimitError):
+                raise e
             error_msg = f"Error calling model for {agent_name}: {str(e)}"
             self.controller.logger.error(error_msg)
             raise
@@ -659,7 +675,28 @@ def main():
         return
 
     # Check for required arguments for a new run
-    query = args.query or config_defaults.get('query')
+    query = args.query or config_defaults.get('query') or """
+    “You are DS-STAR, an autonomous research + engineering agent. Your mission is to build a state-of-the-art, complete, runnable, end-to-end patch-based Local Fourier Neural Operator (Local-FNO) system for 3D urban microclimate / wind-field surrogate modeling.
+
+    Goal
+
+    Minimize prediction error on held-out cities/cases by combining strong 3D geometry + directional exposure features with a Local-FNO trained on overlapping 3D patches, then stitching predictions back to a global field with correct overlap blending, and evaluating with masked metrics.
+
+    Data & assumptions
+
+    You are given ~30 cities. Each case provides paired NumPy arrays:
+
+    Input: building_case_{i}.npy — 3D occupancy grid (binary or {0,1}); 1 = building.
+
+    Target: mean_case_{i}.npy — ground-truth field (float), shape compatible with the input grid (multi-channel: u,v,w,T).
+
+    Axis convention: city axes are (x, y, z) where y is vertical height.
+    GPU id 1,2,3 are available, each with 16 GB of memory.
+    
+    """
+    print("Using query:")
+    print(query)
+
     data_files = args.data_files or config_defaults.get('data_files')
 
     if not (data_files and query):

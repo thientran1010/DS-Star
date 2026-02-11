@@ -32,6 +32,10 @@ dependencies = [
     "pandas>=2.3.3",
     "openpyxl>=3.1.5",
     "ollama>=0.6.1",
+    "scipy>=1.17.0",
+    "tenacity>=9.1.2",
+    "matplotlib>=3.10.8",
+    "torch>=2.10.0",
 ]
 
 [project.scripts]
