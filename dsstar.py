@@ -254,7 +254,9 @@ class DS_STAR_Agent:
         
         def get_provider_for_model(model_name: str, config: DSConfig) -> ModelProvider:
             provider_cls = None
-            for provider in [OllamaProvider, OpenAIProvider, GeminiProvider, HuggingFaceProvider]:
+            for provider in [OllamaProvider, OpenAIProvider, HuggingFaceProvider, 
+                             # This must be last
+                             GeminiProvider]:
                 if provider.provider_instance(model_name):
                     provider_cls = provider
                     break
@@ -657,7 +659,12 @@ def main():
         'interactive': args.interactive or config_defaults.get('interactive', False),
         'max_refinement_rounds': args.max_rounds or config_defaults.get('max_refinement_rounds', 5),
         'model_name': config_defaults.get('model_name'),
-        'preserve_artifacts': config_defaults.get('preserve_artifacts', True)
+        'preserve_artifacts': config_defaults.get('preserve_artifacts', True),
+
+        ### ADDED
+        'api_key': config_defaults.get('api_key'),
+        'agent_models': config_defaults.get('agent_models', {}),
+
     }
     
     # Filter out None values so dataclass defaults are used
@@ -676,7 +683,7 @@ def main():
 
     # Check for required arguments for a new run
     query = args.query or config_defaults.get('query') or """
-    “You are DS-STAR, an autonomous research + engineering agent. Your mission is to build a state-of-the-art, complete, runnable, end-to-end patch-based Local Fourier Neural Operator (Local-FNO) system for 3D urban microclimate / wind-field surrogate modeling.
+    Your mission is to write python code to build a state-of-the-art, complete, runnable, end-to-end patch-based Local Fourier Neural Operator (Local-FNO) system for 3D urban microclimate / wind-field surrogate modeling.
 
     Goal
 
