@@ -1,5 +1,5 @@
 # config.yaml
-run_id: "experiment_name9"
+run_id: "experiment_name93_withconstraint180002s"
 model_name: "gpt-5.1" # gpt-5.1, gpt-4.1, gpt-3.5-turbo
 interactive: false
 max_refinement_rounds: 30
@@ -8,4 +8,4 @@ api_key: null
 
 agent_models:
   CODER: 'hf/Qwen/Qwen3-Coder-Next'
-  # CODER: 'gpt-4.1'
+  #CODER: 'gpt-4.1'

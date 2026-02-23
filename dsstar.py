@@ -30,7 +30,7 @@ class DSConfig:
     auto_debug: bool = True
     # debug attempts defaults to inf for backwards compatibility
     debug_attempts: float = float('inf')
-    execution_timeout: int = 60
+    execution_timeout: int = 180000
     preserve_artifacts: bool = True
     runs_dir: str = "runs"
     data_dir: str = "data"
@@ -526,7 +526,7 @@ class DS_STAR_Agent:
         # PHASE 1: Data Analysis
         if self.controller.should_execute_step(0):
             self.controller.logger.info("=== PHASE 1: ANALYZING DATA FILES ===")
-            data_descriptions = {}
+            data_descriptions = state["data_descriptions"] if state["data_descriptions"] else {}
             absolute_data_files = []
             for i, f in enumerate(data_files):
                 self.controller.logger.info(f"Analyzing {f}...")
@@ -549,6 +549,7 @@ class DS_STAR_Agent:
         if self.controller.should_execute_step(len(absolute_data_files)):
             self.controller.logger.info("=== PHASE 2: ITERATIVE PLANNING & VERIFICATION ===")
             plan = []
+            
             plan.append(self.plan_next_step(query, data_desc_str, plan, ""))
             
             code = self.generate_code(plan, data_desc_str)
@@ -565,6 +566,7 @@ class DS_STAR_Agent:
                     break
                 
                 routing = self.route_plan(plan, query, exec_result, data_desc_str)
+                print("Router response:", routing)
                 
                 if "is wrong!" in routing:
                     # Truncate plan and retry
@@ -683,22 +685,24 @@ def main():
 
     # Check for required arguments for a new run
     query = args.query or config_defaults.get('query') or """
-    Your mission is to write python code to build a state-of-the-art, complete, runnable, end-to-end patch-based Local Fourier Neural Operator (Local-FNO) system for 3D urban microclimate / wind-field surrogate modeling.
+    Your mission is to build a state-of-the-art, complete, runnable, end-to-end patch-based Local Fourier Neural Operator (Local-FNO) system for 3D urban microclimate / wind-field surrogate modeling.
 
     Goal
 
-    Minimize prediction error on held-out cities/cases by combining strong 3D geometry + directional exposure features with a Local-FNO trained on overlapping 3D patches, then stitching predictions back to a global field with correct overlap blending, and evaluating with masked metrics.
+    Minimize prediction error on held-out cities/cases.
 
     Data & assumptions
 
-    You are given ~30 cities. Each case provides paired NumPy arrays:
+    You are given ~34 cities. Each case provides paired NumPy arrays:
 
-    Input: building_case_{i}.npy — 3D occupancy grid (binary or {0,1}); 1 = building.
+    Input: building_case_combined.npy — 3D occupancy grid (binary or 0,1); 1 = building; shape (34, 300, 160, 300).
 
-    Target: mean_case_{i}.npy — ground-truth field (float), shape compatible with the input grid (multi-channel: u,v,w,T).
+    Target: mean_case_combined.npy — ground-truth field (float), shape compatible with the input grid (may be single-channel or multi-channel like u,v,w,T), shape (34, 300, 160, 300, 4).
 
     Axis convention: city axes are (x, y, z) where y is vertical height.
-    GPU id 1,2,3 are available, each with 16 GB of memory.
+
+    GPU id 3 is available, each with 16 GB of memory.
+
     
     """
     print("Using query:")

@@ -36,6 +36,9 @@ dependencies = [
     "tenacity>=9.1.2",
     "matplotlib>=3.10.8",
     "torch>=2.10.0",
+    "numpy>=2.3.5",
+    "seaborn>=0.13.2",
+    "scikit-learn>=1.8.0",
 ]
 
 [project.scripts]

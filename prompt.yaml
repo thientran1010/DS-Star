@@ -58,7 +58,7 @@ coder_init: |
   Your response should be a single markdown Python code (wrapped in).
   There should be no additional headings or text in your response.
 coder_next: |
-  You are an expert data analysist.
+  You are an expert AI researcher.
   Your task is to implement the next plan with the given data.
   # Given data: 
   {summaries}
@@ -77,7 +77,7 @@ coder_next: |
   Your response should be a single markdown Python code (wrapped in).
   There should be no additional headings or text in your response.
 verifier: |
-  You are an expert data analysist.
+  You are an expert AI researcher.
   Your task is to check whether the current plan and its code implementation is enough to
   answer the question.
   # Question
@@ -102,7 +102,7 @@ verifier: |
   Otherwise, please answer 'No'.
   Your answer (Yes/No): 
 router: |
-  You are an expert data analysist.
+  You are an expert AI researcher.
   Since current plan is insufficient to answer the question, your task is to decide how to
   refine the plan to answer the question.
   # Question
@@ -136,7 +136,7 @@ debugger: |
   There should be no additional headings or text in your response.
   Do not include dummy contents since we will debug if error occurs.
 finalyzer: |
-  You are an expert data analysist.
+  You are an expert AI researcher.
   You will answer factoid question by loading and referencing the files/documents listed
   below.
   You also have a reference code.
